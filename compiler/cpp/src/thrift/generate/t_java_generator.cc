@@ -3421,7 +3421,8 @@ void t_java_generator::generate_service_async_client(t_service* tservice) {
                        << async_argument_list(*f_iter, arg_struct, ret_type)
                        << ", this, ___protocolFactory, ___transport);" << endl;
     indent(f_service_) << "  this.___currentMethod = method_call;" << endl;
-    indent(f_service_) << "  ___manager.call(method_call);" << endl;
+    indent(f_service_) << "  org.apache.thrift.async.NettyNonblockingTransport transport = (org.apache.thrift.async.NettyNonblockingTransport) ___transport;" << endl;
+    indent(f_service_) << "  transport.call(method_call, resultHandler);" << endl;
     indent(f_service_) << "}" << endl;
 
     f_service_ << endl;
@@ -4546,7 +4547,7 @@ string t_java_generator::type_name(t_type* ttype,
       if (is_enum_map(tmap)) {
         prefix = "java.util.EnumMap";
       } else if (sorted_containers_) {
-        prefix = "java.util.TreeMap";
+        prefix = "java.util.LinkedHashMap";
       } else {
         prefix = "java.util.HashMap";
       }
@@ -4563,7 +4564,7 @@ string t_java_generator::type_name(t_type* ttype,
       if (is_enum_set(tset)) {
         prefix = "java.util.EnumSet";
       } else if (sorted_containers_) {
-        prefix = "java.util.TreeSet";
+        prefix = "java.util.LinkedHashSet";
       } else {
         prefix = "java.util.HashSet";
       }
@@ -5522,7 +5523,7 @@ void t_java_generator::generate_standard_writer(ostream& out, t_struct* tstruct,
   indent(out) << "public void write(org.apache.thrift.protocol.TProtocol oprot, "
               << tstruct->get_name() << " struct) throws org.apache.thrift.TException {" << endl;
   indent_up();
-  const vector<t_field*>& fields = tstruct->get_sorted_members();
+  const vector<t_field*>& fields = tstruct->get_members();
   vector<t_field*>::const_iterator f_iter;
 
   // performs various checks (e.g. check that all required fields are set)
@@ -5682,7 +5683,6 @@ void t_java_generator::generate_java_struct_tuple_writer(ostream& out, t_struct*
     }
 
     indent(out) << "oprot.writeBitSet(optionals, " << optional_count << ");" << endl;
-    int j = 0;
     for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
       if ((*f_iter)->get_req() == t_field::T_OPTIONAL
           || (*f_iter)->get_req() == t_field::T_OPT_IN_REQ_OUT) {
@@ -5691,7 +5691,6 @@ void t_java_generator::generate_java_struct_tuple_writer(ostream& out, t_struct*
         generate_serialize_field(out, (*f_iter), "struct.", false);
         indent_down();
         indent(out) << "}" << endl;
-        j++;
       }
     }
   }
